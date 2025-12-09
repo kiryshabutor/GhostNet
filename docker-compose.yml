@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/data:/var/lib/postgresql/data
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  user-service:
+    build: ./cmd/user-service
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: "postgres://app_user:app_password@postgres:5432/app_db?sslmode=disable"
+      GRPC_PORT: 9090
+
+  post-service:
+    build: ./cmd/post-service
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_URL: "postgres://app_user:app_password@postgres:5432/app_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
+      GRPC_PORT: 9090
+
+  interaction-service:
+    build: ./cmd/interaction-service
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_URL: "postgres://app_user:app_password@postgres:5432/app_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
+      GRPC_PORT: 9090
+
+  feed-service:
+    build: ./cmd/feed-service
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_URL: "postgres://app_user:app_password@postgres:5432/app_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
+      GRPC_PORT: 9090
+
+  notification-service:
+    build: ./cmd/notification-service
+    depends_on:
+      - kafka
+      - user-service
+      - post-service
+    environment:
+      KAFKA_BROKERS: "kafka:9092"
+      USER_SERVICE_ADDR: "user-service:9090"
+      POST_SERVICE_ADDR: "post-service:9090"
+      TELEGRAM_BOT_TOKEN: "SET_ME"
+
+  telegram-gateway:
+    build: ./cmd/telegram-gateway
+    depends_on:
+      - user-service
+      - post-service
+      - interaction-service
+      - feed-service
+    environment:
+      HTTP_PORT: 8080
+      TELEGRAM_BOT_TOKEN: "SET_ME"
+      USER_SERVICE_ADDR: "user-service:9090"
+      POST_SERVICE_ADDR: "post-service:9090"
+      INTERACTION_SERVICE_ADDR: "interaction-service:9090"
+      FEED_SERVICE_ADDR: "feed-service:9090"
+    ports:
+      - "8080:8080"
+
