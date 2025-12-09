@@ -1,0 +1,100 @@
+package notification
+
+import (
+	"context"
+	"strings"
+
+	eventsv1 "ghostnet/gen/go/proto/events/v1"
+	postv1 "ghostnet/gen/go/proto/post/v1"
+	userv1 "ghostnet/gen/go/proto/user/v1"
+	"github.com/IBM/sarama"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
+)
+
+// Handler реализует обработку Kafka-сообщений.
+type Handler struct {
+	userClient userv1.UserServiceClient
+	postClient postv1.PostServiceClient
+	logger     *zap.Logger
+}
+
+func NewHandler(userClient userv1.UserServiceClient, postClient postv1.PostServiceClient, logger *zap.Logger) *Handler {
+	return &Handler{
+		userClient: userClient,
+		postClient: postClient,
+		logger:     logger,
+	}
+}
+
+func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+
+func (h *Handler) Consume(ctx context.Context, msg *sarama.ConsumerMessage) error {
+	var event eventsv1.PostEvent
+	if err := proto.Unmarshal(msg.Value, &event); err != nil {
+		h.logger.Warn("failed to unmarshal event", zap.Error(err))
+		return nil
+	}
+
+	switch event.EventType {
+	case eventsv1.EventType_EVENT_TYPE_POST_LIKED:
+		return h.handleReaction(ctx, &event, "👍 Новый лайк", func(settings *userv1.GetNotificationSettingsResponse) bool {
+			return settings.GetNotifyOnLike()
+		})
+	case eventsv1.EventType_EVENT_TYPE_POST_DISLIKED:
+		return h.handleReaction(ctx, &event, "👎 Новый дизлайк", func(settings *userv1.GetNotificationSettingsResponse) bool {
+			return settings.GetNotifyOnDislike()
+		})
+	case eventsv1.EventType_EVENT_TYPE_COMMENT_ADDED:
+		return h.handleReaction(ctx, &event, "💬 Новый комментарий", func(settings *userv1.GetNotificationSettingsResponse) bool {
+			return settings.GetNotifyOnComment()
+		})
+	default:
+		// для постов/просмотров уведомлений не шлём
+		return nil
+	}
+}
+
+func (h *Handler) handleReaction(ctx context.Context, event *eventsv1.PostEvent, title string, allow func(*userv1.GetNotificationSettingsResponse) bool) error {
+	if event.GetPostAuthorId() == 0 {
+		return nil
+	}
+
+	settings, err := h.userClient.GetNotificationSettings(ctx, &userv1.GetNotificationSettingsRequest{UserId: event.GetPostAuthorId()})
+	if err != nil {
+		h.logger.Error("failed to get notification settings", zap.Error(err))
+		return nil
+	}
+
+	if !allow(settings) {
+		return nil
+	}
+
+	post, err := h.postClient.GetPost(ctx, &postv1.GetPostRequest{PostId: event.GetPostId()})
+	if err != nil {
+		h.logger.Error("failed to fetch post for notification", zap.Error(err))
+		return nil
+	}
+
+	preview := truncateText(post.GetText(), 80)
+
+	h.logger.Info("send notification",
+		zap.String("title", title),
+		zap.Int64("post_id", post.GetPostId()),
+		zap.Int64("author_id", post.GetAuthorUserId()),
+		zap.String("preview", preview),
+		zap.String("event_type", event.GetEventType().String()),
+		zap.Int64("comment_id", event.GetCommentId()),
+	)
+
+	return nil
+}
+
+func truncateText(text string, limit int) string {
+	trimmed := strings.TrimSpace(text)
+	if len(trimmed) <= limit {
+		return trimmed
+	}
+	return trimmed[:limit] + "…"
+}
