@@ -1,0 +1,54 @@
+# Игнорировать всё
+*
+
+# Разрешить отслеживание важных файлов и директорий
+!.gitignore
+!README.md
+!go.mod
+!go.sum
+
+# Разрешить исходный код Go
+!*.go
+!**/*.go
+
+# Разрешить директории с исходным кодом (но не их содержимое по умолчанию)
+!cmd/
+!cmd/**/*
+!internal/
+!internal/**/*
+!pkg/
+!pkg/**/*
+!api/
+!api/**/*
+
+# Разрешить конфигурационные файлы
+!*.yaml
+!*.yml
+!*.json
+!*.toml
+!*.config
+
+# Разрешить документацию
+!*.md
+!docs/
+!docs/**/*
+
+# Игнорировать специфичные файлы даже если они в разрешённых директориях
+**/*.pb.go
+**/*.pb.gw.go
+*.log
+*.out
+*.coverprofile
+.env
+.env.*
+/.idea
+/.vscode
+/.DS_Store
+/bin
+/tmp
+/dist
+/build
+/coverage
+/vendor
+/docker/postgres/data
+/docker/kafka/data
