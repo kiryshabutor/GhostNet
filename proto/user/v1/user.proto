@@ -6,6 +6,7 @@ option go_package = "ghostnet/gen/proto/user/v1;userv1";
 
 service UserService {
   rpc GetOrCreateUser(GetOrCreateUserRequest) returns (GetOrCreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc GetNotificationSettings(GetNotificationSettingsRequest) returns (GetNotificationSettingsResponse);
   rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
 }
@@ -16,6 +17,15 @@ message GetOrCreateUserRequest {
 
 message GetOrCreateUserResponse {
   int64 user_id = 1;
+}
+
+message GetUserRequest {
+  int64 user_id = 1;
+}
+
+message GetUserResponse {
+  int64 user_id = 1;
+  int64 telegram_id = 2;
 }
 
 message GetNotificationSettingsRequest {

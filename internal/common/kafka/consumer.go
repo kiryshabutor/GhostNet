@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/IBM/sarama"
 	"go.uber.org/zap"
@@ -90,3 +89,4 @@ func (h *consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, cl
 	}
 	return nil
 }
+

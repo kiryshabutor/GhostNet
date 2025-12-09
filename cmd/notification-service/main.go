@@ -60,7 +60,7 @@ func main() {
 	userClient := userv1.NewUserServiceClient(userConn)
 	postClient := postv1.NewPostServiceClient(postConn)
 
-	handler := notification.NewHandler(userClient, postClient, logg)
+	handler := notification.NewHandler(userClient, postClient, cfg.TelegramBotToken, logg)
 
 	go func() {
 		if err := kafka.RunConsumerGroup(ctx, logg, cfg.KafkaBrokers, "notification-service", []string{"post-events"}, handler); err != nil && ctx.Err() == nil {

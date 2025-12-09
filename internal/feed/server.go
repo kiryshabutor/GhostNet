@@ -14,6 +14,7 @@ type Service struct {
 	feedv1.UnimplementedFeedServiceServer
 	repo   *Repository
 	logger *zap.Logger
+	stop   context.CancelFunc
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
