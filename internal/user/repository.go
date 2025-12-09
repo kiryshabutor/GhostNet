@@ -30,6 +30,18 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
+func (r *Repository) GetUser(ctx context.Context, userID int64) (int64, error) {
+	var telegramID int64
+	err := r.pool.QueryRow(ctx, `SELECT telegram_id FROM users WHERE id = $1`, userID).Scan(&telegramID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrUserNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("get user: %w", err)
+	}
+	return telegramID, nil
+}
+
 func (r *Repository) GetOrCreateUser(ctx context.Context, telegramID int64) (int64, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx, `

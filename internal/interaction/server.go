@@ -10,6 +10,7 @@ import (
 	eventsv1 "ghostnet/gen/go/proto/events/v1"
 	interactionv1 "ghostnet/gen/go/proto/interaction/v1"
 	"ghostnet/internal/common/kafka"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

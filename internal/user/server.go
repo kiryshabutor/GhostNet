@@ -37,6 +37,26 @@ func (s *Service) GetOrCreateUser(ctx context.Context, req *userv1.GetOrCreateUs
 	return &userv1.GetOrCreateUserResponse{UserId: userID}, nil
 }
 
+func (s *Service) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	telegramID, err := s.repo.GetUser(ctx, req.GetUserId())
+	if err != nil {
+		if err == ErrUserNotFound {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+		s.logger.Error("failed to get user", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to get user")
+	}
+
+	return &userv1.GetUserResponse{
+		UserId:     req.GetUserId(),
+		TelegramId: telegramID,
+	}, nil
+}
+
 func (s *Service) GetNotificationSettings(ctx context.Context, req *userv1.GetNotificationSettingsRequest) (*userv1.GetNotificationSettingsResponse, error) {
 	if req.GetUserId() == 0 {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")

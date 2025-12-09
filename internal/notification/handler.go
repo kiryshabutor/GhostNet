@@ -2,11 +2,15 @@ package notification
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
 
 	eventsv1 "ghostnet/gen/go/proto/events/v1"
 	postv1 "ghostnet/gen/go/proto/post/v1"
 	userv1 "ghostnet/gen/go/proto/user/v1"
+
 	"github.com/IBM/sarama"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -16,13 +20,15 @@ import (
 type Handler struct {
 	userClient userv1.UserServiceClient
 	postClient postv1.PostServiceClient
+	botToken   string
 	logger     *zap.Logger
 }
 
-func NewHandler(userClient userv1.UserServiceClient, postClient postv1.PostServiceClient, logger *zap.Logger) *Handler {
+func NewHandler(userClient userv1.UserServiceClient, postClient postv1.PostServiceClient, botToken string, logger *zap.Logger) *Handler {
 	return &Handler{
 		userClient: userClient,
 		postClient: postClient,
+		botToken:   botToken,
 		logger:     logger,
 	}
 }
@@ -79,14 +85,21 @@ func (h *Handler) handleReaction(ctx context.Context, event *eventsv1.PostEvent,
 
 	preview := truncateText(post.GetText(), 80)
 
-	h.logger.Info("send notification",
-		zap.String("title", title),
-		zap.Int64("post_id", post.GetPostId()),
-		zap.Int64("author_id", post.GetAuthorUserId()),
-		zap.String("preview", preview),
-		zap.String("event_type", event.GetEventType().String()),
-		zap.Int64("comment_id", event.GetCommentId()),
-	)
+	userResp, err := h.userClient.GetUser(ctx, &userv1.GetUserRequest{UserId: post.GetAuthorUserId()})
+	if err != nil {
+		h.logger.Error("failed to get user telegram id", zap.Error(err))
+		return nil
+	}
+
+	if userResp.GetTelegramId() == 0 {
+		return nil
+	}
+
+	message := title + "\n" + preview
+	if err := h.sendTelegram(ctx, userResp.GetTelegramId(), message); err != nil {
+		h.logger.Warn("failed to send telegram notification", zap.Error(err))
+		return nil
+	}
 
 	return nil
 }
@@ -97,4 +110,32 @@ func truncateText(text string, limit int) string {
 		return trimmed
 	}
 	return trimmed[:limit] + "…"
+}
+
+func (h *Handler) sendTelegram(ctx context.Context, chatID int64, text string) error {
+	if h.botToken == "" || h.botToken == "SET_ME" {
+		return nil
+	}
+	reqBody := strings.NewReader(`{"chat_id":` + strconv.FormatInt(chatID, 10) + `,"text":"` + escape(text) + `"}`)
+	url := "https://api.telegram.org/bot" + h.botToken + "/sendMessage"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reqBody)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("telegram send status %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func escape(s string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`)
+	return replacer.Replace(s)
 }
