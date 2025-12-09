@@ -6,4 +6,3 @@ import "github.com/caarlos0/env/v10"
 func Parse(cfg interface{}) error {
 	return env.Parse(cfg)
 }
-

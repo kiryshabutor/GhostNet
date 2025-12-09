@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package interaction.v1;
+
+option go_package = "ghostnet/gen/proto/interaction/v1;interactionv1";
+
+service InteractionService {
+  rpc LikePost(LikePostRequest) returns (LikePostResponse);
+  rpc DislikePost(DislikePostRequest) returns (DislikePostResponse);
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  rpc GetPostStats(GetPostStatsRequest) returns (GetPostStatsResponse);
+  rpc ListPostComments(ListPostCommentsRequest) returns (ListPostCommentsResponse);
+  rpc MarkPostViewed(MarkPostViewedRequest) returns (MarkPostViewedResponse);
+}
+
+message LikePostRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message LikePostResponse {}
+
+message DislikePostRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message DislikePostResponse {}
+
+message AddCommentRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+  string text = 3;
+}
+
+message AddCommentResponse {
+  int64 comment_id = 1;
+}
+
+message GetPostStatsRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message GetPostStatsResponse {
+  int64 likes = 1;
+  int64 dislikes = 2;
+  int64 comments = 3;
+  int64 views = 4;
+}
+
+message ListPostCommentsRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message CommentItem {
+  int64 comment_id = 1;
+  string text = 2;
+  string created_at = 3;
+}
+
+message ListPostCommentsResponse {
+  repeated CommentItem comments = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool has_more = 4;
+}
+
+message MarkPostViewedRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message MarkPostViewedResponse {}
+

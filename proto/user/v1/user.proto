@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "ghostnet/gen/proto/user/v1;userv1";
+
+service UserService {
+  rpc GetOrCreateUser(GetOrCreateUserRequest) returns (GetOrCreateUserResponse);
+  rpc GetNotificationSettings(GetNotificationSettingsRequest) returns (GetNotificationSettingsResponse);
+  rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
+}
+
+message GetOrCreateUserRequest {
+  int64 telegram_id = 1;
+}
+
+message GetOrCreateUserResponse {
+  int64 user_id = 1;
+}
+
+message GetNotificationSettingsRequest {
+  int64 user_id = 1;
+}
+
+message GetNotificationSettingsResponse {
+  bool notify_on_like = 1;
+  bool notify_on_dislike = 2;
+  bool notify_on_comment = 3;
+}
+
+message UpdateNotificationSettingsRequest {
+  int64 user_id = 1;
+  bool notify_on_like = 2;
+  bool notify_on_dislike = 3;
+  bool notify_on_comment = 4;
+}
+
+message UpdateNotificationSettingsResponse {}
+
