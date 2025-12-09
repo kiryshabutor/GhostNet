@@ -1,0 +1,6 @@
+version: v1
+name: buf.build/ghostnet/ghostnet
+lint:
+  use:
+    - DEFAULT
+

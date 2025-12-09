@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package feed.v1;
+
+option go_package = "ghostnet/gen/proto/feed/v1;feedv1";
+
+service FeedService {
+  rpc GetNextPostForUser(GetNextPostForUserRequest) returns (GetNextPostForUserResponse);
+}
+
+message GetNextPostForUserRequest {
+  int64 user_id = 1;
+}
+
+message GetNextPostForUserResponse {
+  bool has_post = 1;
+  int64 post_id = 2;
+  int64 author_user_id = 3;
+}
+

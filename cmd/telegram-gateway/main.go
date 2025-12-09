@@ -3,19 +3,19 @@ package main
 import (
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"ghostnet/internal/common/config"
 	"ghostnet/internal/common/logger"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	HTTPPort            string `env:"HTTP_PORT" envDefault:"8080"`
-	TelegramBotToken    string `env:"TELEGRAM_BOT_TOKEN" envDefault:"SET_ME"`
-	UserServiceAddr     string `env:"USER_SERVICE_ADDR" envDefault:"user-service:9090"`
-	PostServiceAddr     string `env:"POST_SERVICE_ADDR" envDefault:"post-service:9090"`
-	InteractionService  string `env:"INTERACTION_SERVICE_ADDR" envDefault:"interaction-service:9090"`
-	FeedServiceAddr     string `env:"FEED_SERVICE_ADDR" envDefault:"feed-service:9090"`
+	HTTPPort           string `env:"HTTP_PORT" envDefault:"8080"`
+	TelegramBotToken   string `env:"TELEGRAM_BOT_TOKEN" envDefault:"SET_ME"`
+	UserServiceAddr    string `env:"USER_SERVICE_ADDR" envDefault:"user-service:9090"`
+	PostServiceAddr    string `env:"POST_SERVICE_ADDR" envDefault:"post-service:9090"`
+	InteractionService string `env:"INTERACTION_SERVICE_ADDR" envDefault:"interaction-service:9090"`
+	FeedServiceAddr    string `env:"FEED_SERVICE_ADDR" envDefault:"feed-service:9090"`
 }
 
 func main() {
@@ -47,4 +47,3 @@ func main() {
 		logg.Fatal("http server failed", zap.Error(err))
 	}
 }
-

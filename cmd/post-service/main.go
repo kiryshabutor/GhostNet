@@ -33,4 +33,3 @@ func main() {
 		logg.Fatal("grpc server failed", zap.Error(err))
 	}
 }
-

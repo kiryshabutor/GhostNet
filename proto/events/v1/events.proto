@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "ghostnet/gen/proto/events/v1;eventsv1";
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_POST_CREATED = 1;
+  EVENT_TYPE_POST_LIKED = 2;
+  EVENT_TYPE_POST_DISLIKED = 3;
+  EVENT_TYPE_COMMENT_ADDED = 4;
+  EVENT_TYPE_POST_VIEWED = 5;
+}
+
+message PostEvent {
+  string event_id = 1;
+  EventType event_type = 2;
+  int64 post_id = 3;
+  int64 actor_user_id = 4;
+  int64 post_author_id = 5;
+  int64 comment_id = 6;
+  string created_at = 7;
+}
+

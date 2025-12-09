@@ -23,4 +23,3 @@ func RunGRPC(logger *zap.Logger, port string, register func(*grpc.Server)) error
 	logger.Info("gRPC server started", zap.String("port", port))
 	return srv.Serve(lis)
 }
-
