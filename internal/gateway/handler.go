@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -36,8 +37,9 @@ func NewHandler(
 	}
 }
 
-type telegramUpdate struct {
-	Message *struct {
+type TelegramUpdate struct {
+	UpdateID int64 `json:"update_id"`
+	Message  *struct {
 		MessageID int64 `json:"message_id"`
 		Chat      *struct {
 			ID int64 `json:"id"`
@@ -46,24 +48,31 @@ type telegramUpdate struct {
 	} `json:"message"`
 }
 
+// ProcessUpdate — общая логика обработки входящего апдейта (используется вебхуком и polling).
+func (h *Handler) ProcessUpdate(ctx context.Context, upd *TelegramUpdate) {
+	if upd == nil || upd.Message == nil || upd.Message.Chat == nil {
+		return
+	}
+
+	telegramID := upd.Message.Chat.ID
+	if telegramID <= 0 {
+		return
+	}
+
+	if _, err := h.userClient.GetOrCreateUser(ctx, &userv1.GetOrCreateUserRequest{TelegramId: telegramID}); err != nil {
+		h.logger.Warn("failed to register user", zap.Error(err))
+	}
+}
+
 // HandleWebhook — минимальная заглушка вебхука Telegram.
 func (h *Handler) HandleWebhook(c *gin.Context) {
-	var upd telegramUpdate
+	var upd TelegramUpdate
 	if err := c.BindJSON(&upd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update"})
 		return
 	}
 
-	var telegramID int64
-	if upd.Message != nil && upd.Message.Chat != nil {
-		telegramID = upd.Message.Chat.ID
-	}
-
-	if telegramID > 0 {
-		if _, err := h.userClient.GetOrCreateUser(c, &userv1.GetOrCreateUserRequest{TelegramId: telegramID}); err != nil {
-			h.logger.Warn("failed to register user", zap.Error(err))
-		}
-	}
+	h.ProcessUpdate(c, &upd)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

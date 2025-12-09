@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"strconv"
+	"time"
 
 	feedv1 "ghostnet/gen/go/proto/feed/v1"
 	interactionv1 "ghostnet/gen/go/proto/interaction/v1"
@@ -81,6 +85,12 @@ func main() {
 		logg,
 	)
 
+	if cfg.TelegramBotToken == "" || cfg.TelegramBotToken == "SET_ME" {
+		logg.Warn("TELEGRAM_BOT_TOKEN is not set; polling disabled")
+	} else {
+		go pollTelegram(ctx, logg, cfg.TelegramBotToken, handler)
+	}
+
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -90,5 +100,60 @@ func main() {
 
 	if err := r.Run(":" + cfg.HTTPPort); err != nil {
 		logg.Fatal("http server failed", zap.Error(err))
+	}
+}
+
+type updateResponse struct {
+	OK     bool                     `json:"ok"`
+	Result []gateway.TelegramUpdate `json:"result"`
+}
+
+func pollTelegram(ctx context.Context, logg *zap.Logger, token string, handler *gateway.Handler) {
+	offset := int64(0)
+	client := &http.Client{Timeout: 35 * time.Second}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		url := "https://api.telegram.org/bot" + token + "/getUpdates?timeout=30"
+		if offset > 0 {
+			url += "&offset=" + strconv.FormatInt(offset, 10)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			logg.Warn("poll create request failed", zap.Error(err))
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			logg.Warn("poll request failed", zap.Error(err))
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		var body updateResponse
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			logg.Warn("decode getUpdates failed", zap.Error(err))
+		}
+		resp.Body.Close()
+
+		if !body.OK {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		for _, upd := range body.Result {
+			handler.ProcessUpdate(ctx, &upd)
+			if upd.UpdateID >= offset {
+				offset = upd.UpdateID + 1
+			}
+		}
 	}
 }
