@@ -90,7 +90,7 @@ services:
       - feed-service
     environment:
       HTTP_PORT: 8080
-      TELEGRAM_BOT_TOKEN: "SET_ME"
+      TELEGRAM_BOT_TOKEN: "8010048024:AAESxl2-1sW5uGtQlyJjcJ7pFhCFFI9Oo9o"
       USER_SERVICE_ADDR: "user-service:9090"
       POST_SERVICE_ADDR: "post-service:9090"
       INTERACTION_SERVICE_ADDR: "interaction-service:9090"
